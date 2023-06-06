@@ -1,10 +1,11 @@
 import "./App.css";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import axios from "axios";
 import ImageUpload from "./ImageUpload";
 import Results from "./Results";
+import { useRef } from "react";
 
 function App() {
   const [image, setImage] = useState(null);
@@ -13,53 +14,71 @@ function App() {
   const [uploadButtonText, setUploadButtonText] = useState("Upload Image");
   const [predictionResults, setPredictionResults] = useState([]);
   const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshPage, setRefreshPage] = useState(false);
 
+  useEffect(() => {
+    if (refreshPage) {
+      window.location.reload();
+    }
+  }, [refreshPage]);
   const handleImageUpload = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const reader = new FileReader();
       reader.addEventListener("load", () => setImage(reader.result));
       reader.readAsDataURL(e.target.files[0]);
       setSelectedImage(e.target.files[0]);
-      setResults(["Result 1", "Result 2", "Result 3"]);
       setPreviewOpen(true);
-      setUploadButtonText("Change Image");
+
+      // setUploadButtonText("Change Image");
     } else {
+      setRefreshPage(true);
       setPreviewOpen(false);
       setUploadButtonText("Upload Image");
     }
   };
 
-  function handleImageChange(e) {
-    setSelectedImage(e.target.files[0]);
-    setPreviewOpen(true);
-  }
-
   function closePreview() {
     setPreviewOpen(false);
     setUploadButtonText("Upload Image");
+    setRefreshPage(true);
   }
+  const fileInput = React.createRef();
 
   const endpoints = [
-    "http://localhost:5000/predict/cnn",
-    "http://localhost:5000/predict/vit",
     "http://localhost:5000/predict/ensemble",
+    "http://localhost:5000/predict/cnn",
+    "http://localhost:5000/predict/vit"
   ];
-
+  
+  const ensembleEndpoint = "http://localhost:5000/predict/ensemble";
+  
+  // function to handle changing the image
+  const handleChange = (e) => {
+    setSelectedImage(e.target.files[0]);
+    setPreviewOpen(true);
+  };
+  
+  function handleUpload() {
+    fileInput.current.click();
+  }
+  
   const onSubmit = async () => {
     if (!selectedImage) {
       alert("Please select an image");
       return;
     }
+    setLoading(true);
     setPredictionResults([]);
     var formdata = new FormData();
     formdata.append("image", selectedImage);
-
+  
     var requestOptions = {
       method: "POST",
       body: formdata,
       redirect: "follow",
     };
-
+  
     try {
       const results = [];
       for (const endpoint of endpoints) {
@@ -67,16 +86,97 @@ function App() {
         const result = await response.json();
         results.push(result);
       }
-      setPredictionResults(results); // update state with the results
-      console.log(results);
-      alert("Images submitted successfully!");
-      closePreview();
+      
+      const ensembleResult = results[0];
+      setPredictionResults([ensembleResult]); // update state with the ensemble results
+      console.log(ensembleResult);
+      // alert("Images submitted successfully!");
     } catch (error) {
       console.log("error", error);
       alert("Failed to submit images. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+  
 
+  // const onSubmit = async () => {
+  //   if (!selectedImage) {
+  //     alert("Please select an image");
+  //     return;
+  //   }
+  //   setLoading(true);
+  //   setPredictionResults([]);
+  //   var formdata = new FormData();
+  //   formdata.append("image", selectedImage);
+  
+  //   var requestOptions = {
+  //     method: "POST",
+  //     body: formdata,
+  //     redirect: "follow",
+  //   };
+  
+  //   try {
+  //     const results = [];
+  //     for (const endpoint of endpoints) {
+  //       const response = await fetch(endpoint, requestOptions);
+  //       const result = await response.json();
+  //       results.push(result);
+  //     }
+      
+  //     const ensembleResponse = await fetch(endpoint[0], requestOptions);
+  //     const ensembleResult = await ensembleResponse.json();
+  //     results.push(ensembleResult);
+      
+  //     setPredictionResults(results); // update state with the results
+  //     console.log(results);
+  //     // alert("Images submitted successfully!");
+  //   } catch (error) {
+  //     console.log("error", error);
+  //     alert("Failed to submit images. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
+  // const onSubmit = async () => {
+  //   if (!selectedImage) {
+  //     alert("Please select an image");
+  //     return;
+  //   }
+  //   setLoading(true);
+  //   setPredictionResults([]);
+  //   var formdata = new FormData();
+  //   formdata.append("image", selectedImage);
+
+  //   var requestOptions = {
+  //     method: "POST",
+  //     body: formdata,
+  //     redirect: "follow",
+  //   };
+
+  //   try {
+  //     const results = [];
+  //     // for (const endpoint of endpoints) {
+  //     //   const response = await fetch(endpoint, requestOptions);
+  //     //   const result = await response.json();
+  //     //   results.push(result);
+  //     // }
+      
+  //     const response = await fetch(endpoint, requestOptions);
+  //     const result = await response.json();
+  //     results.push(result);
+      
+  //     setPredictionResults(results); // update state with the results
+  //     console.log(results);
+  //     // alert("Images submitted successfully!");
+  //   } catch (error) {
+  //     console.log("error", error);
+  //     alert("Failed to submit images. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   return (
     <div className="App">
       <header>
@@ -85,20 +185,20 @@ function App() {
             <div class="logo">AI-DermaScanner</div>
             <ul>
               <li>
-                <a href="#">Home</a>
+                <a href="#home">Home</a>
               </li>
               <li>
-                <a href="#">About</a>
+                <a href="#about">About</a>
               </li>
               <li>
-                <a href="#">Services</a>
+                <a href="#process">Process</a>
               </li>
               <li>
-                <a href="#">Contact</a>
+                <a href="#contact">Contact</a>
               </li>
             </ul>
           </nav>
-          <div className="hero">
+          <div id="home" className="hero">
             <h2>Diagnose Skin Lesions Online</h2>
             <p>
               Our advanced algorithm can help you diagnose skin lesions
@@ -122,18 +222,55 @@ function App() {
             {selectedImage && previewOpen && (
               <div className="image-preview">
                 <div className="preview-container">
-                  <img src={URL.createObjectURL(selectedImage)} alt="Preview" />
-                  <button onClick={closePreview}>Close</button>
+                  <img
+                    height={270} width={270}
+                    // height={380} width={380}
+                    src={URL.createObjectURL(selectedImage)}
+                    alt="Preview"
+                  />
+
                   {!predictionResults.length ? (
-                    <button onClick={onSubmit}>Submit</button>
+                    <div>
+                      <button
+                        onClick={closePreview}
+                        style={{ margin: "40px 10px 0px 10px" }}
+                      >
+                        Close
+                      </button>
+                      <button
+                        onClick={onSubmit}
+                        style={{ margin: "40px 10px 0px 50px" }}
+                      >
+                        Submit
+                      </button>
+                    </div>
                   ) : (
                     <div>
-                      {predictionResults.map((result, index) => (
-                        <div key={index}>
-                          <p>{endpoints[index]}</p>
-                          <p>{JSON.stringify(result)}</p>
-                        </div>
-                      ))}
+                      <div
+                        style={{ display: "flex", justifyContent: "center" }}
+                      >
+                        {predictionResults.map((result, index) => (
+                          <div key={index}>
+                            <h3>Skin lesion: {result.class}</h3>
+                            {/* <h3>Risk percentage: {result.risk_percentage} %</h3> */}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={closePreview}
+                        style={{ margin: "40px 10px 0px 10px" }}
+                      >
+                        Close
+                      </button>
+
+                      <a
+                        href="https://www.osmosis.org/answers/skin-lesions"
+                        target="_blank"
+                      >
+                        <button style={{ margin: "40px 10px 0px 10px" }}>
+                          Primary Treatments
+                        </button>
+                      </a>
                     </div>
                   )}
                 </div>
@@ -144,7 +281,7 @@ function App() {
       </header>
 
       <main>
-        <div className="heroin">
+        <div id="about" className="heroin">
           <h2>How does Artificial Intelligence analyze images?</h2>
           <p>
             AI Dermatologist uses a deep machine learning algorithm
@@ -155,6 +292,29 @@ function App() {
             confirmed diagnosis and assessment by dermatologists.
           </p>
           {/* <button>Check your skin</button> */}
+        </div>
+        <div id="process">
+          <div className="heroo">
+            <h2 style={{ marginLeft: "20px" }}>Take a photo</h2>
+            <h4 style={{ marginRight: "20px" }}>
+              Keep zoomed at the closest distance (less than 10 cm), keep in
+              focus and center only the skin mark with good light condition.
+            </h4>
+          </div>
+          <div className="heroo">
+            <h2 style={{ marginLeft: "20px" }}>Identify and send</h2>
+            <h4 style={{ marginRight: "20px" }}>
+              Send your photo to the Artificial Intelligence. The system will
+              analyze it and tell you the skin lesion type .
+            </h4>
+          </div>
+          <div className="heroo">
+            <h2 style={{ marginLeft: "20px" }}>Risk assessment</h2>
+            <h4 style={{ marginRight: "20px" }}>
+              Get the result within 60 seconds with the risk assesment View
+              Results Online within 60 seconds 
+            </h4>
+          </div>
         </div>
         <section className="features">
           <div className="feature">
@@ -170,12 +330,13 @@ function App() {
             <h3>Secure and Private</h3>
             <p>Your data is safe with us. We take your privacy seriously.</p>
           </div>
-          <div className="feature">
+          <div id="contact" className="feature">
             <i className="fas fa-user-md"></i>
             <h3>Expert Support</h3>
             <p>
               If you need further assistance, our team of experts is here to
               help you.
+              harshaniwanigasekara660@gmail.com
             </p>
           </div>
         </section>
