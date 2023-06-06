@@ -46,12 +46,12 @@ function App() {
   const fileInput = React.createRef();
 
   const endpoints = [
-    "http://164.90.225.105/predict/ensemble",
-    "http://164.90.225.105/predict/cnn",
-    "http://164.90.225.105/predict/vit"
+    "http://164.90.225.105:5000/predict/ensemble",
+    "http://164.90.225.105:5000/predict/cnn",
+    "http://164.90.225.105:5000/predict/vit"
   ];
   
-  const ensembleEndpoint = "http://164.90.225.105/predict/ensemble";
+  const ensembleEndpoint = "http://164.90.225.105:5000/predict/ensemble";
   
   // function to handle changing the image
   const handleChange = (e) => {
